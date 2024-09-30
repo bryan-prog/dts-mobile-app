@@ -1,17 +1,54 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, DrawerLayoutAndroid, Image, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, DrawerLayoutAndroid, Image, Dimensions, ActivityIndicator, Alert } from 'react-native';
 import { MaterialCommunityIcons } from 'react-native-vector-icons';  
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 
 const { width: screenWidth } = Dimensions.get('window');  
 
 export default function Dashboard() {
   const router = useRouter();
   const [drawer, setDrawer] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  function handleLogout() {
-    router.replace('/');
+  async function handleLogout() {
+    setLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      console.log('Logout token:', token);
+
+      if (token) {
+        const response = await axios.post('http://dts.sanjuancity.gov.ph/api/logout', {}, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        console.log('Response status', response.status); 
+        console.log('Response headers', response.config.headers);
+    
+
+     
+        await AsyncStorage.removeItem('authToken');
+        
+   
+        router.replace('/');
+      } else {
+        Alert.alert('Error', 'No authentication token found.');
+      }
+    } catch (error) {
+      console.log('Logout error:', error);
+      if (error.response) {
+        console.log('API error:', error.response.data);
+        Alert.alert('Logout Failed', error.response.data.message || 'An error occurred during logout.');
+      } else {
+        Alert.alert('Logout Failed', 'An error occurred. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   const navigationView = () => (
@@ -22,7 +59,6 @@ export default function Dashboard() {
           style={styles.logoImage}
         />
       </View>
-
     
       <View style={styles.menuItems}>
         <TouchableOpacity style={styles.menuItem}>
@@ -55,9 +91,15 @@ export default function Dashboard() {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <MaterialCommunityIcons name="logout" size={20} color="white" />
-        <Text style={styles.logoutButtonText}>Logout</Text>
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} disabled={loading}>
+        {loading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <>
+            <MaterialCommunityIcons name="logout" size={20} color="white" />
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </>
+        )}
       </TouchableOpacity>
     </View>
   );

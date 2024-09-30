@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, StyleSheet, Text, View, TextInput, TouchableOpacity, ImageBackground, Image, Modal, KeyboardAvoidingView, ScrollView, Platform, ActivityIndicator } from 'react-native';
+import { SafeAreaView, StyleSheet, Text, View, TextInput, TouchableOpacity, ImageBackground, Image, Modal, KeyboardAvoidingView, ScrollView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { Dimensions } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
@@ -58,26 +60,36 @@ export default function LoginScreen() {
 
     try {
       setLoading(true);
-      const response = await fetch('https://reqres.in/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: username,
-          password: password,
-        }),
+
+     
+      const response = await axios.post('http://dts.sanjuancity.gov.ph/api/login', {
+        username,
+        password,
       });
 
-      const data = await response.json();
+      if (response.data && response.data.access_token) {
+        const authToken = response.data.access_token;
 
-      if (response.ok) {
-        router.navigate('/dashboard');
+        await AsyncStorage.setItem('authToken', authToken);
+
+   
+        Alert.alert('Login Success', `Welcome ${response.data.user.name}!`);
+
+        
+        if (response.data.redirect_to === 'mayors_page') {
+          router.push('/mayors_page'); 
+        } else {
+          router.push('/home'); 
+        }
       } else {
-        setError(data.error || 'Invalid login credentials.');
+        setError('Login failed. No token received.');
       }
     } catch (error) {
-      setError('Failed to connect. Please try again.');
+      if (error.response) {
+        setError(error.response.data.error || 'Invalid credentials');
+      } else {
+        setError('Failed to connect. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -130,7 +142,6 @@ export default function LoginScreen() {
                   value={password}
                   onChangeText={setPassword}
                 />
-
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                   <Icon name={showPassword ? 'eye' : 'eye-slash'} size={20} color="#fff" />
                 </TouchableOpacity>
@@ -173,7 +184,6 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </Modal>
 
-           
             <Modal
               transparent={true}
               visible={showNoInternetModal}

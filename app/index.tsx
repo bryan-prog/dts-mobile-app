@@ -73,9 +73,6 @@ export default function LoginScreen() {
         await AsyncStorage.setItem('authToken', authToken);
 
    
-        Alert.alert('Login Success', `Welcome ${response.data.user.name}!`);
-
-        
         if (response.data.redirect_to === 'mayors_page') {
           router.push('/mayors_page'); 
         } else {
@@ -86,13 +83,17 @@ export default function LoginScreen() {
       }
     } catch (error) {
       if (error.response) {
-        setError(error.response.data.error || 'Invalid credentials');
+        setError('Incorrect username or password.');
       } else {
         setError('Failed to connect. Please try again.');
       }
     } finally {
       setLoading(false);
     }
+  }
+
+  const handleDummyLogin = ()=>{
+    router.replace('/home');
   }
 
   return (
@@ -147,7 +148,7 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </View>
 
-              <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={loading}>
+              <TouchableOpacity style={styles.loginButton} onPress={handleDummyLogin} disabled={loading}>
                 {loading ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
@@ -275,7 +276,7 @@ const styles = StyleSheet.create({
   loginButton: {
     width: width * 0.75,
     height: 50,
-    backgroundColor: '#4B0082',
+    backgroundColor: '#800000',
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
